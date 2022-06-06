@@ -20,3 +20,8 @@ variable "subnets" {
   
 }
 
+variable "vpc_tag_environment" {
+
+
+}
+

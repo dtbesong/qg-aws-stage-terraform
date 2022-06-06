@@ -2,8 +2,8 @@
 # Target Group Creation
 ####################################################
 
-resource "aws_lb_target_group" "dev_bat" {
-  name        = "dev-bat"
+resource "aws_lb_target_group" "staging_bat" {
+  name        = "staging-bat"
   port        = 443
   target_type = "instance"
   protocol    = "HTTPS"
@@ -14,8 +14,8 @@ resource "aws_lb_target_group" "dev_bat" {
 # Target Group Attachment with Instance
 ####################################################
 
-resource "aws_alb_target_group_attachment" "dev_bat" {
-  target_group_arn = aws_lb_target_group.dev_bat.arn
+resource "aws_alb_target_group_attachment" "staging_bat" {
+  target_group_arn = aws_lb_target_group.staging_bat.arn
   target_id        = aws_instance.bata.id
 }
 
@@ -23,7 +23,7 @@ resource "aws_alb_target_group_attachment" "dev_bat" {
 # Application Load balancer
 ####################################################
 
-resource "aws_lb" "dev" {
+resource "aws_lb" "staging" {
   name               = var.name            
   internal           = var.internal
   load_balancer_type = var.load_balancer_type                   
@@ -53,7 +53,7 @@ resource "aws_lb" "dev" {
 ####################################################
 
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.dev.arn
+  load_balancer_arn = aws_lb.staging.arn
   port              = "80"
   protocol          = "HTTP"
 
@@ -73,7 +73,7 @@ resource "aws_lb_listener" "http" {
 ####################################################
 
 resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.dev.arn
+  load_balancer_arn = aws_lb.staging.arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
@@ -81,7 +81,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.dev_bat.arn
+    target_group_arn = aws_lb_target_group.staging_bat.arn
   }
 }
 
@@ -95,13 +95,13 @@ resource "aws_lb_listener_rule" "static" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.dev_bat.arn
+    target_group_arn = aws_lb_target_group.staging_bat.arn
 
   }
 
   condition {
     host_header {
-      values = ["developmen*.qiigo.com"]
+      values = ["developmen*.qiigo.com"]   # check to see if this should be staging*.qiigo.com
     }
   }
 }
@@ -110,7 +110,7 @@ resource "aws_lb_listener_rule" "static" {
 # Certificate Assignment
 ####################################################
 
-resource "aws_lb_listener_certificate" "dev_bat" {
+resource "aws_lb_listener_certificate" "staging_bat" {
   listener_arn    = aws_lb_listener.https.arn
   certificate_arn = "arn:aws:acm:us-east-1:483935165063:certificate/547ebe43-9bf7-429d-acd3-889c716136b5"
 }

@@ -1,7 +1,7 @@
 ###################################################
 ######### Outputs used for other TF Code ##########
 ###################################################
-output "vpc_main_id" {
+output "id" {
   value = aws_vpc.main.id
 }
 

@@ -29,11 +29,13 @@ resource "aws_eip" "openvpn" {
 
 ####################################################################
 
+
+
 resource "aws_instance" "bata" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.private_1a.id                 #module.vpc.priv_subnet_1a_id
-  vpc_security_group_ids = [aws_security_group.app.id]
+  subnet_id              =   subnet-0d608d11e66261ae5   #module.vpc.priv_subnet_1a_id
+  # vpc_security_group_ids = [aws_security_group.app.id]
   key_name               = var.instance_name_bata                #"${var.instance_name_bata}"
 
   # root disk
@@ -45,7 +47,7 @@ resource "aws_instance" "bata" {
   }
 
   tags = {
-    "Name"        = var.instance_name_beta                        #"${var.instance_name_bata}"
+    "Name"        = var.instance_name_bata                        #"${var.instance_name_bata}"
     "Environment" = "${var.vpc_tag_environment}"
     "map-migrated"   = "d-server-001sw2ungcy573"
   }
@@ -64,10 +66,10 @@ resource "aws_instance" "bata" {
 
 resource "aws_instance" "ovpna" {
   ami                         = data.aws_ami.openvpn-ami.id
-  instance_type               = var.instance_type                 #"t3a.micro"
-  subnet_id                   = aws_subnet.public_1a.id                   #module.vpc.pub_subnet_1a_id
+  instance_type               = var.instance_type_ovpna                 #"t3a.micro"
+  subnet_id                   = subnet-0510039d1d339b7a8                   #module.vpc.pub_subnet_1a_id
   associate_public_ip_address = "true"
-  vpc_security_group_ids      = [aws_security_group.openvpn.id]
+  # vpc_security_group_ids      = [aws_security_group.openvpn.id]
   key_name                    = var.instance_name_ovpna           #"${var.instance_name_ovpna}"
   source_dest_check           = "false"
 
@@ -105,9 +107,9 @@ resource "aws_instance" "ovpna" {
 
 resource "aws_instance" "bastia" {
   ami                    = var.ami_id
-  instance_type          = var.instance_type                            #"t3a.micro"
-  subnet_id              = aws_subnet.private_1a.id                        #module.vpc.priv_subnet_1a_id
-  vpc_security_group_ids = [aws_security_group.bastion.id]
+  instance_type          = var.instance_type_bastia                          #"t3a.micro"
+  subnet_id              = subnet-0d608d11e66261ae5                        #module.vpc.priv_subnet_1a_id
+  # vpc_security_group_ids = [aws_security_group.bastion.id]
   key_name               = var.instance_name_bastiona                     #"${var.instance_name_bastiona}"
 
   # root disk

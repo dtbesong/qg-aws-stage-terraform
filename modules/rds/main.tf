@@ -3,9 +3,9 @@ resource "aws_db_instance" "qg_mysql" {
   engine                  = "mysql"
   engine_version          = "5.7"
   instance_class          = "db.t3.medium"
-  db_subnet_group_name    = "${aws_db_subnet_group.dev.name}"
-  name                    = "qgdevmysql001"
-  identifier              = "qgdevdb001"
+  db_subnet_group_name    = "${aws_db_subnet_group.staging.name}"
+  name                    = "qgstagingmysql001"
+  identifier              = "qgstagingdb001"
   username         = jsondecode(data.aws_secretsmanager_secret_version.currentuser.secret_string)["username"]
   password         = jsondecode(data.aws_secretsmanager_secret_version.currentuser.secret_string)["password"]
   backup_retention_period = 3
@@ -21,14 +21,14 @@ resource "aws_db_instance" "qg_mysql" {
   deletion_protection = true
 
   depends_on = [
-    aws_db_subnet_group.dev,
+    aws_db_subnet_group.staging,
   ]
 }
 
-resource "aws_db_subnet_group" "dev" {
+resource "aws_db_subnet_group" "staging" {
   name       = "subnet-group-qg-mysql001"
   subnet_ids = [module.vpc.priv_db_subnet_1a_id,module.vpc.priv_db_subnet_1b_id]
-  description = "Dev Private Database subnet group for MySQL database"
+  description = "staging Private Database subnet group for MySQL database"
 
   tags = {
     Name = "${var.vpc_tag_environment}_subnet-group-qg-mysql001"

@@ -1,0 +1,539 @@
+module "project1-vpc" {
+    source = "../modules/vpc"
+    
+    
+    vpc_cidr_block = var.p1_vpc_cidr_block
+    subnet_pub_1a_cidr_block = var.subnet_pub_1a_cidr_block
+    subnet_priv_1a_cidr_block = var.subnet_priv_1a_cidr_block
+    subnet_priv_db_1a_cidr_block = var.subnet_priv_db_1a_cidr_block
+    subnet_pub_1b_cidr_block = var.subnet_pub_1b_cidr_block
+    subnet_priv_1b_cidr_block = var.subnet_priv_1b_cidr_block
+    subnet_priv_db_1b_cidr_block = var.subnet_priv_db_1b_cidr_block
+    vpc_tag_name = var.vpc_tag_name
+    vpc_tag_environment = var.vpc_tag_environment
+    vpc_tag_type = var.vpc_tag_type
+    vpc_tag_purpose = var.vpc_tag_purpose
+    subnet_1a_az = var.subnet_1a_az
+    subnet_1b_az = var.subnet_1b_az
+  
+
+}
+
+
+###################################################
+#######  ALB ACCESS LOG BUCKET AND POLICY  ########
+###################################################
+data "aws_region" "current" {}
+data "aws_elb_service_account" "main" {}
+resource "aws_s3_bucket_policy" "lb-bucket-policy" {
+  bucket = aws_s3_bucket.elb_logs.id
+
+  policy = <<POLICY
+{
+    "Id": "Policy",
+    "Version": "2012-10-17",
+    "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "${data.aws_elb_service_account.main.arn}"
+                ]
+            },
+            "Action": [
+                "s3:PutObject"
+            ],
+            "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "delivery.logs.amazonaws.com"
+            },
+            "Action": [
+                "s3:PutObject"
+            ],
+            "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+            "Condition": {
+                "StringEquals": {
+                    "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "delivery.logs.amazonaws.com"
+            },
+            "Action": [
+                "s3:GetBucketAcl"
+            ],
+            "Resource": "${aws_s3_bucket.elb_logs.arn}"
+        }
+    ]
+}
+POLICY
+}
+
+resource "aws_s3_bucket" "elb_logs" {
+  bucket = "qg-${var.vpc_tag_environment}-elb-accesslogs-s3ue1"
+  acl    = "private"
+
+  lifecycle_rule {
+    enabled = true
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    expiration {
+      days = 365
+    }
+  }
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+###################################################
+################  VPC FLOW LOGS  ##################
+###################################################
+/*
+resource "aws_s3_bucket" "vpc_flow_logs" {
+  bucket = "qg-${var.vpc_tag_environment}-1-vpc-flowlogs-s3ue1"
+  acl    = "private"
+  lifecycle_rule {
+    enabled = true
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    transition {
+      days          = 180
+      storage_class = "DEEP_ARCHIVE"
+    }
+
+    expiration {
+      days = 2570
+    }
+  }
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+*/
+
+###################################################
+##############  CLOUDTRAIL BUCKET  ################
+###################################################
+
+resource "aws_s3_bucket" "tf-cloudtrail-events" {
+  bucket        = local.aws_s3_bucket
+  force_destroy = true
+  lifecycle_rule {
+    enabled = true
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    transition {
+      days          = 180
+      storage_class = "DEEP_ARCHIVE"
+    }
+
+    expiration {
+      days = 2570
+    }
+  }
+
+  policy = <<POLICY
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AWSCloudTrailAclCheck",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
+            "Action": "s3:GetBucketAcl",
+            "Resource": "arn:aws:s3:::${local.aws_s3_bucket}"
+        },
+        {
+            "Sid": "AWSCloudTrailWrite",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::${local.aws_s3_bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+            "Condition": {
+                "StringEquals": {
+                    "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+            }
+        }
+    ]
+}
+POLICY
+}
+
+resource "aws_s3_bucket_public_access_block" "tf-cloudtrail-events" {
+  bucket = local.aws_s3_bucket
+
+  block_public_acls   = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ###################################################
+# ################## Cloudtrail #####################
+# ###################################################
+
+
+# resource "aws_iam_role" "tf-cloudtrail-events" {
+#   name = "CloudTrailRoleForCloudwatchLogs"
+
+#   assume_role_policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Principal": {
+#         "Service": "cloudtrail.amazonaws.com"
+#       },
+#       "Action": "sts:AssumeRole"
+#     }
+#   ]
+# }
+# EOF
+# }
+
+# resource "aws_iam_role_policy" "tf-cloudtrail-events" {
+#   name = "CloudTrailPlolicyForCloudwatchLogs"
+#   role = aws_iam_role.tf-cloudtrail-events.id
+
+#   policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Sid": "AWSCloudTrailCreateLogStream",
+#       "Effect": "Allow",
+#       "Action": ["logs:CreateLogStream"],
+#       "Resource": [
+#           "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.cloudtrail-events.id}:log-stream:*"
+
+
+#       ]
+#     },
+#     {
+#       "Sid": "AWSCloudTrailPutLogEvents",
+#       "Effect": "Allow",
+#       "Action": ["logs:PutLogEvents"],
+#       "Resource": [
+# 	"arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.cloudtrail-events.id}:log-stream:*"
+#       ]
+#     }
+#   ]
+# }
+# EOF
+# }
+
+
+
+###################################################
+################## Cloudtrail #####################
+###################################################
+
+
+# resource "aws_iam_role" "tf-cloudtrail-events" {
+#   name = "CloudTrailRoleForCloudwatchLogs"
+
+#   assume_role_policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Principal": {
+#         "Service": "cloudtrail.amazonaws.com"
+#       },
+#       "Action": "sts:AssumeRole"
+#     }
+#   ]
+# }
+# EOF
+# }
+
+# data "aws_iam_role" "tf-cloudtrail-events" {
+#   name = "CloudTrailRoleForCloudwatchLogs"
+
+# #   assume_role_policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Principal": {
+#         "Service": "cloudtrail.amazonaws.com"
+#       },
+#       "Action": "sts:AssumeRole"
+#     }
+#   ]
+# }
+# EOF
+# }
+
+
+
+
+
+
+
+
+
+
+
+
+# resource "aws_iam_role_policy" "tf-cloudtrail-events" {
+#   name = "CloudTrailPlolicyForCloudwatchLogs"
+#   role = aws_iam_role.tf-cloudtrail-events.id
+
+#   policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Sid": "AWSCloudTrailCreateLogStream",
+#       "Effect": "Allow",
+#       "Action": ["logs:CreateLogStream"],
+#       "Resource": [
+#           "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.cloudtrail-events.id}:log-stream:*"
+
+
+#       ]
+#     },
+#     {
+#       "Sid": "AWSCloudTrailPutLogEvents",
+#       "Effect": "Allow",
+#       "Action": ["logs:PutLogEvents"],
+#       "Resource": [
+# 	"arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.cloudtrail-events.id}:log-stream:*"
+#       ]
+#     }
+#   ]
+# }
+# EOF
+# }
+
+
+
+
+
+
+data "aws_caller_identity" "current" {}
+
+#output "account_id" {
+#  value = data.aws_caller_identity.current.account_id
+#}
+
+# resource "aws_cloudtrail" "tf-cloudtrail-events" {
+#   name                          = "All-Regions-All-Read-Writes"
+#   s3_bucket_name                = aws_s3_bucket.tf-cloudtrail-events.id
+#   is_multi_region_trail 	= true
+#   enable_logging		= true
+#   enable_log_file_validation 	= true
+#   include_global_service_events = true                                    #added to capture trails for global services like IAM
+#   kms_key_id 			= aws_kms_key.tf-cloudtrail-events.arn
+#   cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.cloudtrail-events.arn}:*"
+#   cloud_watch_logs_role_arn = aws_iam_role.tf-cloudtrail-events.arn
+
+# }
+
+###################################################
+#################  CW Log Group  ##################
+###################################################
+
+resource "aws_cloudwatch_log_group" "cloudtrail-events" {
+  name = "Cloudtrail/AllManagementLogGroup"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+######################################################
+############### aws_kms_key ##########################
+######################################################
+
+
+
+
+resource "aws_kms_key" "tf-cloudtrail-events" {
+  description         = "KMS key for tf-cloudtrail-events"
+  policy              = <<EOF
+{
+    "Version": "2012-10-17",
+    "Id": "Key policy created by CloudTrail",
+    "Statement": [
+        {
+            "Sid": "Enable IAM User Permissions",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+            },
+            "Action": "kms:*",
+            "Resource": "*"
+        },
+        {
+            "Sid": "Allow CloudTrail to encrypt logs",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+            },
+            "Action": "kms:GenerateDataKey*",
+            "Resource": "*",
+            "Condition": {
+                "StringLike": {
+                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+                }
+            }
+        },
+        {
+            "Sid": "Allow CloudTrail to describe key",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+            },
+            "Action": "kms:DescribeKey",
+            "Resource": "*"
+        },
+        {
+            "Sid": "Allow principals in the account to decrypt log files",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "kms:Decrypt",
+                "kms:ReEncryptFrom"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
+                },
+                "StringLike": {
+                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+                }
+            }
+        },
+        {
+            "Sid": "Allow alias creation during setup",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": "kms:CreateAlias",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}",
+                    "kms:ViaService": "ec2.us-east-1.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Sid": "Enable cross account log decryption",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "kms:Decrypt",
+                "kms:ReEncryptFrom"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
+                },
+                "StringLike": {
+                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+                }
+            }
+        }
+    ]
+}
+EOF
+}
+
+                                                        
+
+# data "aws_kms_alias" "tf-cloudtrail-events" {
+# name          = "alias/tf-cloudtrail-events"
+# target_key_id = aws_kms_key.tf-cloudtrail-events.key_id
+# }
+
+
+
+# resource "aws_kms_alias" "tf-cloudtrail-events" {
+# name          = "alias/tf-cloudtrail-events"
+# target_key_id = aws_kms_key.tf-cloudtrail-events.key_id
+#  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
