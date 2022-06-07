@@ -1,3 +1,7 @@
+
+
+
+
 module "project2-ec2" {
     source = "../modules/ec2"
     instance_tenancy = var.instance_tenancy
@@ -12,12 +16,8 @@ module "project2-ec2" {
     instance_name_ovpna = var.instance_name_ovpna
     instance_name_bastiona = var.instance_name_bastiona
     vpc_tag_environment = var.vpc_tag_environment
-    
-    
-
-
-
-
 
 
     }
+
+   

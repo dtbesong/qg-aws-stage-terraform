@@ -609,17 +609,3 @@ resource "aws_network_acl" "pub_acl" {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-

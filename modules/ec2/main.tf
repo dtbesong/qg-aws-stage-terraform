@@ -28,13 +28,20 @@ resource "aws_eip" "openvpn" {
 # Creating BAT App EC2 Instance
 
 ####################################################################
+# data  "terraform_remote_state" "project1" {
+#   backend = "local"
+
+#   config = {
+#     path ="../project1/.terraform"
+#   }
+# }
 
 
 
 resource "aws_instance" "bata" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
-  subnet_id              =   subnet-0d608d11e66261ae5   #module.vpc.priv_subnet_1a_id
+  subnet_id              =  "subnet-01b551cd24df5743d"               #module.vpc.priv_subnet_1a_id
   # vpc_security_group_ids = [aws_security_group.app.id]
   key_name               = var.instance_name_bata                #"${var.instance_name_bata}"
 
@@ -67,7 +74,7 @@ resource "aws_instance" "bata" {
 resource "aws_instance" "ovpna" {
   ami                         = data.aws_ami.openvpn-ami.id
   instance_type               = var.instance_type_ovpna                 #"t3a.micro"
-  subnet_id                   = subnet-0510039d1d339b7a8                   #module.vpc.pub_subnet_1a_id
+  # subnet_id                   = subnet-0510039d1d339b7a8                   #module.vpc.pub_subnet_1a_id
   associate_public_ip_address = "true"
   # vpc_security_group_ids      = [aws_security_group.openvpn.id]
   key_name                    = var.instance_name_ovpna           #"${var.instance_name_ovpna}"
@@ -108,7 +115,7 @@ resource "aws_instance" "ovpna" {
 resource "aws_instance" "bastia" {
   ami                    = var.ami_id
   instance_type          = var.instance_type_bastia                          #"t3a.micro"
-  subnet_id              = subnet-0d608d11e66261ae5                        #module.vpc.priv_subnet_1a_id
+  # subnet_id              = subnet-0d608d11e66261ae5                        #module.vpc.priv_subnet_1a_id
   # vpc_security_group_ids = [aws_security_group.bastion.id]
   key_name               = var.instance_name_bastiona                     #"${var.instance_name_bastiona}"
 

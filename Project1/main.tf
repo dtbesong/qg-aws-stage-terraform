@@ -25,78 +25,78 @@ module "project1-vpc" {
 ###################################################
 data "aws_region" "current" {}
 data "aws_elb_service_account" "main" {}
-resource "aws_s3_bucket_policy" "lb-bucket-policy" {
-  bucket = aws_s3_bucket.elb_logs.id
+# resource "aws_s3_bucket_policy" "lb-bucket-policy" {
+#   bucket = aws_s3_bucket.elb_logs.id
 
-  policy = <<POLICY
-{
-    "Id": "Policy",
-    "Version": "2012-10-17",
-    "Statement": [{
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": [
-                    "${data.aws_elb_service_account.main.arn}"
-                ]
-            },
-            "Action": [
-                "s3:PutObject"
-            ],
-            "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "delivery.logs.amazonaws.com"
-            },
-            "Action": [
-                "s3:PutObject"
-            ],
-            "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
-            "Condition": {
-                "StringEquals": {
-                    "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-            }
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "delivery.logs.amazonaws.com"
-            },
-            "Action": [
-                "s3:GetBucketAcl"
-            ],
-            "Resource": "${aws_s3_bucket.elb_logs.arn}"
-        }
-    ]
-}
-POLICY
-}
+#   policy = <<POLICY
+# {
+#     "Id": "Policy",
+#     "Version": "2012-10-17",
+#     "Statement": [{
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "AWS": [
+#                     "${data.aws_elb_service_account.main.arn}"
+#                 ]
+#             },
+#             "Action": [
+#                 "s3:PutObject"
+#             ],
+#             "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+#         },
+#         {
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "Service": "delivery.logs.amazonaws.com"
+#             },
+#             "Action": [
+#                 "s3:PutObject"
+#             ],
+#             "Resource": "${aws_s3_bucket.elb_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+#             "Condition": {
+#                 "StringEquals": {
+#                     "s3:x-amz-acl": "bucket-owner-full-control"
+#                 }
+#             }
+#         },
+#         {
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "Service": "delivery.logs.amazonaws.com"
+#             },
+#             "Action": [
+#                 "s3:GetBucketAcl"
+#             ],
+#             "Resource": "${aws_s3_bucket.elb_logs.arn}"
+#         }
+#     ]
+# }
+# POLICY
+# }
 
-resource "aws_s3_bucket" "elb_logs" {
-  bucket = "qg-${var.vpc_tag_environment}-elb-accesslogs-s3ue1"
-  acl    = "private"
+# resource "aws_s3_bucket" "elb_logs" {
+#   bucket = "qg-${var.vpc_tag_environment}-elb-accesslogs-s3ue1"
+#   acl    = "private"
 
-  lifecycle_rule {
-    enabled = true
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
-    }
+#   lifecycle_rule {
+#     enabled = true
+#     transition {
+#       days          = 90
+#       storage_class = "GLACIER"
+#     }
 
-    expiration {
-      days = 365
-    }
-  }
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
-}
+#     expiration {
+#       days = 365
+#     }
+#   }
+#   server_side_encryption_configuration {
+#     rule {
+#       apply_server_side_encryption_by_default {
+#         sse_algorithm = "AES256"
+#       }
+#     }
+#   }
+# }
 
 ###################################################
 ################  VPC FLOW LOGS  ##################
@@ -136,67 +136,67 @@ resource "aws_s3_bucket" "vpc_flow_logs" {
 ##############  CLOUDTRAIL BUCKET  ################
 ###################################################
 
-resource "aws_s3_bucket" "tf-cloudtrail-events" {
-  bucket        = local.aws_s3_bucket
-  force_destroy = true
-  lifecycle_rule {
-    enabled = true
+# resource "aws_s3_bucket" "tf-cloudtrail-events" {
+#   bucket        = local.aws_s3_bucket
+#   force_destroy = true
+#   lifecycle_rule {
+#     enabled = true
 
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
-    }
+#     transition {
+#       days          = 90
+#       storage_class = "GLACIER"
+#     }
 
-    transition {
-      days          = 180
-      storage_class = "DEEP_ARCHIVE"
-    }
+#     transition {
+#       days          = 180
+#       storage_class = "DEEP_ARCHIVE"
+#     }
 
-    expiration {
-      days = 2570
-    }
-  }
+#     expiration {
+#       days = 2570
+#     }
+#   }
 
-  policy = <<POLICY
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AWSCloudTrailAclCheck",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": "cloudtrail.amazonaws.com"
-            },
-            "Action": "s3:GetBucketAcl",
-            "Resource": "arn:aws:s3:::${local.aws_s3_bucket}"
-        },
-        {
-            "Sid": "AWSCloudTrailWrite",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": "cloudtrail.amazonaws.com"
-            },
-            "Action": "s3:PutObject",
-            "Resource": "arn:aws:s3:::${local.aws_s3_bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
-            "Condition": {
-                "StringEquals": {
-                    "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-            }
-        }
-    ]
-}
-POLICY
-}
+#   policy = <<POLICY
+# {
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Sid": "AWSCloudTrailAclCheck",
+#             "Effect": "Allow",
+#             "Principal": {
+#               "Service": "cloudtrail.amazonaws.com"
+#             },
+#             "Action": "s3:GetBucketAcl",
+#             "Resource": "arn:aws:s3:::${local.aws_s3_bucket}"
+#         },
+#         {
+#             "Sid": "AWSCloudTrailWrite",
+#             "Effect": "Allow",
+#             "Principal": {
+#               "Service": "cloudtrail.amazonaws.com"
+#             },
+#             "Action": "s3:PutObject",
+#             "Resource": "arn:aws:s3:::${local.aws_s3_bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+#             "Condition": {
+#                 "StringEquals": {
+#                     "s3:x-amz-acl": "bucket-owner-full-control"
+#                 }
+#             }
+#         }
+#     ]
+# }
+# POLICY
+# }
 
-resource "aws_s3_bucket_public_access_block" "tf-cloudtrail-events" {
-  bucket = local.aws_s3_bucket
+# resource "aws_s3_bucket_public_access_block" "tf-cloudtrail-events" {
+#   bucket = local.aws_s3_bucket
 
-  block_public_acls   = true
-  block_public_policy = true
-  ignore_public_acls = true
-  restrict_public_buckets = true
-}
+#   block_public_acls   = true
+#   block_public_policy = true
+#   ignore_public_acls = true
+#   restrict_public_buckets = true
+# }
 
 
 
@@ -385,9 +385,9 @@ data "aws_caller_identity" "current" {}
 #################  CW Log Group  ##################
 ###################################################
 
-resource "aws_cloudwatch_log_group" "cloudtrail-events" {
-  name = "Cloudtrail/AllManagementLogGroup"
-}
+# resource "aws_cloudwatch_log_group" "cloudtrail-events" {
+#   name = "Cloudtrail/AllManagementLogGroup"
+# }
 
 
 
@@ -408,104 +408,104 @@ resource "aws_cloudwatch_log_group" "cloudtrail-events" {
 
 
 
-resource "aws_kms_key" "tf-cloudtrail-events" {
-  description         = "KMS key for tf-cloudtrail-events"
-  policy              = <<EOF
-{
-    "Version": "2012-10-17",
-    "Id": "Key policy created by CloudTrail",
-    "Statement": [
-        {
-            "Sid": "Enable IAM User Permissions",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-            },
-            "Action": "kms:*",
-            "Resource": "*"
-        },
-        {
-            "Sid": "Allow CloudTrail to encrypt logs",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "cloudtrail.amazonaws.com"
-            },
-            "Action": "kms:GenerateDataKey*",
-            "Resource": "*",
-            "Condition": {
-                "StringLike": {
-                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
-                }
-            }
-        },
-        {
-            "Sid": "Allow CloudTrail to describe key",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "cloudtrail.amazonaws.com"
-            },
-            "Action": "kms:DescribeKey",
-            "Resource": "*"
-        },
-        {
-            "Sid": "Allow principals in the account to decrypt log files",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "*"
-            },
-            "Action": [
-                "kms:Decrypt",
-                "kms:ReEncryptFrom"
-            ],
-            "Resource": "*",
-            "Condition": {
-                "StringEquals": {
-                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
-                },
-                "StringLike": {
-                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
-                }
-            }
-        },
-        {
-            "Sid": "Allow alias creation during setup",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "*"
-            },
-            "Action": "kms:CreateAlias",
-            "Resource": "*",
-            "Condition": {
-                "StringEquals": {
-                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}",
-                    "kms:ViaService": "ec2.us-east-1.amazonaws.com"
-                }
-            }
-        },
-        {
-            "Sid": "Enable cross account log decryption",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "*"
-            },
-            "Action": [
-                "kms:Decrypt",
-                "kms:ReEncryptFrom"
-            ],
-            "Resource": "*",
-            "Condition": {
-                "StringEquals": {
-                    "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
-                },
-                "StringLike": {
-                    "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
-                }
-            }
-        }
-    ]
-}
-EOF
-}
+# resource "aws_kms_key" "tf-cloudtrail-events" {
+#   description         = "KMS key for tf-cloudtrail-events"
+#   policy              = <<EOF
+# {
+#     "Version": "2012-10-17",
+#     "Id": "Key policy created by CloudTrail",
+#     "Statement": [
+#         {
+#             "Sid": "Enable IAM User Permissions",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+#             },
+#             "Action": "kms:*",
+#             "Resource": "*"
+#         },
+#         {
+#             "Sid": "Allow CloudTrail to encrypt logs",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "Service": "cloudtrail.amazonaws.com"
+#             },
+#             "Action": "kms:GenerateDataKey*",
+#             "Resource": "*",
+#             "Condition": {
+#                 "StringLike": {
+#                     "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+#                 }
+#             }
+#         },
+#         {
+#             "Sid": "Allow CloudTrail to describe key",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "Service": "cloudtrail.amazonaws.com"
+#             },
+#             "Action": "kms:DescribeKey",
+#             "Resource": "*"
+#         },
+#         {
+#             "Sid": "Allow principals in the account to decrypt log files",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "AWS": "*"
+#             },
+#             "Action": [
+#                 "kms:Decrypt",
+#                 "kms:ReEncryptFrom"
+#             ],
+#             "Resource": "*",
+#             "Condition": {
+#                 "StringEquals": {
+#                     "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
+#                 },
+#                 "StringLike": {
+#                     "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+#                 }
+#             }
+#         },
+#         {
+#             "Sid": "Allow alias creation during setup",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "AWS": "*"
+#             },
+#             "Action": "kms:CreateAlias",
+#             "Resource": "*",
+#             "Condition": {
+#                 "StringEquals": {
+#                     "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}",
+#                     "kms:ViaService": "ec2.us-east-1.amazonaws.com"
+#                 }
+#             }
+#         },
+#         {
+#             "Sid": "Enable cross account log decryption",
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "AWS": "*"
+#             },
+#             "Action": [
+#                 "kms:Decrypt",
+#                 "kms:ReEncryptFrom"
+#             ],
+#             "Resource": "*",
+#             "Condition": {
+#                 "StringEquals": {
+#                     "kms:CallerAccount": "${data.aws_caller_identity.current.account_id}"
+#                 },
+#                 "StringLike": {
+#                     "kms:EncryptionContext:aws:cloudtrail:arn": "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+#                 }
+#             }
+#         }
+#     ]
+# }
+# EOF
+# }
 
                                                         
 
