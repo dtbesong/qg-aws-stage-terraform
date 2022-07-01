@@ -1,4 +1,4 @@
-module "project1-vpc" {
+module "vpc" {
     source = "../modules/vpc"
     
     
@@ -23,8 +23,8 @@ module "project1-vpc" {
 ###################################################
 #######  ALB ACCESS LOG BUCKET AND POLICY  ########
 ###################################################
-data "aws_region" "current" {}
-data "aws_elb_service_account" "main" {}
+# data "aws_region" "current" {}
+# data "aws_elb_service_account" "main" {}
 # resource "aws_s3_bucket_policy" "lb-bucket-policy" {
 #   bucket = aws_s3_bucket.elb_logs.id
 
@@ -362,7 +362,7 @@ resource "aws_s3_bucket" "vpc_flow_logs" {
 
 
 
-data "aws_caller_identity" "current" {}
+# data "aws_caller_identity" "current" {}
 
 #output "account_id" {
 #  value = data.aws_caller_identity.current.account_id

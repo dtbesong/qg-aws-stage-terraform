@@ -16,17 +16,17 @@ variable "instance_type" {
   default     = ""
 }
 
-variable "instance_type_ovpna" {
-  description = "Instance type to create an instance"
-  type        = string
-  default     = ""
-}
+# variable "instance_type_ovpna" {
+#   description = "Instance type to create an instance"
+#   type        = string
+#   default     = ""
+# }
 
-variable "instance_type_bastia" {
-  description = "Instance type to create an instance"
-  type        = string
-  default     = ""
-}
+# variable "instance_type_bastia" {
+#   description = "Instance type to create an instance"
+#   type        = string
+#   default     = ""
+# }
 
 variable "ssh_private_key" {
   description = "Pem file of Keypair for ec2-user in the instance"
@@ -40,17 +40,17 @@ variable "instance_name_bata" {
   default = ""
 }
 
-variable "instance_name_ovpna" {
-  description = "Name of the instance"
-  type = string
-  default = ""
-}
+# variable "instance_name_ovpna" {
+#   description = "Name of the instance"
+#   type = string
+#   default = ""
+# }
 
-variable "instance_name_bastiona" {
-  description = "Name of the instance"
-  type = string
-  default = ""
-}
+# variable "instance_name_bastiona" {
+#   description = "Name of the instance"
+#   type = string
+#   default = ""
+# }
 
 variable "vpc_tag_environment" {
   default = ""
@@ -63,4 +63,5 @@ variable "aws_region" {
   type    = string
   default = "us-east-1"
 }
+
 
